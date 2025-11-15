@@ -1,0 +1,12 @@
+[project]
+name = "dy"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pandas>=2.3.3",
+    "pytubefix>=10.3.3",
+    "requests>=2.32.5",
+    "yt-dlp>=2025.11.12",
+]

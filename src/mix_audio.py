@@ -1,15 +1,62 @@
 #!/usr/bin/env python3
 import subprocess
+from pathlib import Path
+import requests, urllib.parse
+from tqdm import tqdm
 
-root_dir = "separated/htdemucs/ana/"
-input_files = [f"{root_dir}drums.wav", f"{root_dir}bass.wav"]
-output_file = f"{root_dir}mixed_audio.wav"
+# --- nome da música (sem .mp3) ---
+music_name = "ninguemexplicadeus"
+mp3_path = Path("src") / f"{music_name}.mp3"
 
-cmd = ["ffmpeg", "-y"]
-for file in input_files:
-    cmd.extend(["-i", file])
+# --- 1. Baixar música do YouTube ---
+video = "https://www.youtube.com/watch?v=LYsaKn8FRhc&list=PL_Q15fKxrBb4pxTp2zQm6zZU3-h4dlm05"
+url = urllib.parse.quote(video, "")
+clip = f"https://www.clipto.com/api/youtube/mp3?url={url}&csrfToken=8crUK66l-IsnUGoga9wzUzPRRfb4Inx9MEIw"
 
-cmd.extend(["-filter_complex", f"amix=inputs={len(input_files)}:duration=longest", output_file])
+print(f"⬇️ Baixando música em: {mp3_path}")
+r = requests.get(clip, stream=True)
+total = int(r.headers.get("content-length", 0))
 
-subprocess.run(cmd)
-print(f"✅ Done: {output_file}")
+with open(mp3_path, "wb") as f:
+    for chunk in tqdm(r.iter_content(1024), total=total//1024, unit="KB"):
+        f.write(chunk)
+
+# --- 2. Rodar Demucs ---
+print(f"🎧 1. Rodando Demucs em: {mp3_path}")
+subprocess.run(["demucs", str(mp3_path)])
+
+# --- 3. Localizar pasta de saída ---
+separated_root = Path("separated")
+found_dir = None
+
+for model_dir in separated_root.iterdir():
+    candidate = model_dir / music_name
+    if candidate.exists():
+        found_dir = candidate
+        break
+
+if not found_dir:
+    print("❌ ERRO: Demucs não produziu a pasta de saída.")
+    print("   Verifique se o arquivo realmente existe:", mp3_path)
+    exit(1)
+
+print(f"🎛️ 2. Misturando Bateria e Baixo em: {found_dir}")
+
+drums = found_dir / "drums.wav"
+bass = found_dir / "bass.wav"
+output_file = found_dir / "mixed_audio.wav"
+
+if not drums.exists() or not bass.exists():
+    print(f"❌ Arquivos separados não encontrados em: {found_dir}")
+    exit(1)
+
+# --- 4. Mixagem ---
+subprocess.run([
+    "ffmpeg", "-y",
+    "-i", str(drums),
+    "-i", str(bass),
+    "-filter_complex", "amix=inputs=2:duration=longest",
+    str(output_file)
+])
+
+print(f"✅ Finalizado: {output_file}")

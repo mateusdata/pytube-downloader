@@ -6,6 +6,14 @@ A Python project for downloading YouTube videos using pytube.
 
 This project uses `uv` for dependency management. Make sure you have `uv` installed on your system.
 
+### Installing uv
+
+If you don't have `uv` installed, you can install it using pip:
+
+```bash
+pip install uv
+```
+
 ### Installation
 
 1. Clone the repository
@@ -22,7 +30,7 @@ This project uses `uv` for dependency management. Make sure you have `uv` instal
     ```
 3. Install dependencies:
     ```bash
-    uv sync
+    uv pip install .
     ```
 
 ## Usage

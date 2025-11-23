@@ -5,11 +5,11 @@ import requests, urllib.parse
 from tqdm import tqdm
 
 
-music_name = "soltaCartaTigrinho"
+music_name = "Coldplay"
 mp3_path = Path("src") / f"{music_name}.mp3"
 
 
-video = "https://www.youtube.com/watch?v=Y5hzcNpFoiM&list=RDY5hzcNpFoiM&start_radio=1"
+video = "https://www.youtube.com/watch?v=1G4isv_Fylg&list=RD1G4isv_Fylg&start_radio=1"
 
 
 url = urllib.parse.quote(video, "")

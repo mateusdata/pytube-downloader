@@ -1,6 +1,6 @@
-# pytube-downloader
+# sound-ai
 
-A Python project for downloading YouTube videos using pytube.
+A Python project for downloading YouTube videos using pytube and separating audio tracks.
 
 ## Setup
 
@@ -32,23 +32,9 @@ pip install uv
     ```bash
     uv pip install .
     ```
+4. Run the Streamlit web version for audio track separation:
+    ```bash
+    streamlit run src/streamlit.py
+    ```
 
-## Usage
 
-To download a video and process audio:
-
-```bash
-# Download video in MP4 format
-uv run cli.py "video" --format mp4
-
-# Process audio with demucs
-demucs dil2.mp3
-```
-
-## Example
-
-```bash
-# pytube-downloader
-uv run cli.py "video" --format mp4
-demucs dil2.mp3
-```

@@ -22,13 +22,14 @@ SEPARATED_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def sanitize_name(name: str) -> str:
-    # Limpa caracteres especiais e espaços
+    """Limpa caracteres especiais e espaços do nome do arquivo."""
     clean = "".join([c if c.isalnum() or c in ('-', '_') else "_" for c in name])
     while "__" in clean:
         clean = clean.replace("__", "_")
     return clean.strip("_")
 
 def convert_to_mp3(file_path: Path) -> Path:
+    """Converte WAV para MP3 usando ffmpeg."""
     if file_path.suffix == ".mp3":
         return file_path
         
@@ -45,13 +46,14 @@ def convert_to_mp3(file_path: Path) -> Path:
     
     if mp3_path.exists() and mp3_path.stat().st_size > 0:
         try:
-            file_path.unlink()
+            file_path.unlink() 
         except Exception:
             pass
         return mp3_path
     return file_path
 
 def download_audio(video_url: str, music_name: str) -> tuple[Path | None, str]:
+    """Baixa o áudio do YouTube via API externa."""
     if not music_name:
         music_name = "audio_temp"
         
@@ -78,6 +80,9 @@ def download_audio(video_url: str, music_name: str) -> tuple[Path | None, str]:
         return None, final_name
 
 def process_demucs(input_mp3: Path, music_name: str) -> bool:
+    """
+    Roda o Demucs para separar faixas, converte para MP3 e cria as mixagens.
+    """
     with st.spinner(f"Separando faixas de {music_name}..."):
         result = subprocess.run(
             ["demucs", "-n", "htdemucs", str(input_mp3)], 
@@ -104,10 +109,16 @@ def process_demucs(input_mp3: Path, music_name: str) -> bool:
                 new_path = convert_to_mp3(stem_path)
                 mp3_stems[stem.replace(".wav", "")] = new_path
 
+    
+    vocals = mp3_stems.get("vocals")
     drums = mp3_stems.get("drums")
     bass = mp3_stems.get("bass")
-    mixed_file = target_dir / "mixed_audio.mp3"
+    
+    
+    mixed_file = target_dir / "mixed_audio.mp3"      
+    mixed_voice_file = target_dir / "mixed_audio_voice.mp3" 
 
+    
     if drums and bass and drums.exists() and bass.exists():
         with st.spinner("Criando Mixagem (Bateria + Baixo)..."):
             cmd_mix = [
@@ -120,12 +131,27 @@ def process_demucs(input_mp3: Path, music_name: str) -> bool:
             ]
             subprocess.run(cmd_mix, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+    
+    if drums and bass and vocals and drums.exists() and bass.exists() and vocals.exists():
+        with st.spinner("Criando Mixagem Completa (Voz + Bateria + Baixo)..."):
+            cmd_mix_voice = [
+                "ffmpeg", "-y",
+                "-i", str(vocals),
+                "-i", str(drums),
+                "-i", str(bass),
+                "-filter_complex", "amix=inputs=3:duration=longest", 
+                "-codec:a", "libmp3lame", "-qscale:a", "2",
+                str(mixed_voice_file)
+            ]
+            subprocess.run(cmd_mix_voice, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
     try:
         input_mp3.unlink()
     except:
         pass
 
     return True
+
 
 
 with st.sidebar:
@@ -138,9 +164,8 @@ with st.sidebar:
     show_mixed = st.toggle("Mostrar Mix (Drums + Bass)", value=True)
     show_stems = st.toggle("Mostrar Faixas Individuais", value=False)
     
-    st.write("") # Espaço vazio
+    st.write("") 
     
-    # use_container_width=True deixa o botão largo e bonito nativamente
     btn_process = st.button("INICIAR PROCESSAMENTO", type="primary", use_container_width=True)
 
     if btn_process:
@@ -172,7 +197,6 @@ if SEPARATED_DIR.exists():
         st.info("Nenhuma sessão encontrada.")
 
     for folder in subfolders:
-        # Cria um container nativo do Streamlit (borda suave padrão)
         with st.container(border=True):
             col_info, col_actions = st.columns([0.7, 0.3])
             
@@ -181,23 +205,40 @@ if SEPARATED_DIR.exists():
             
             mixed = folder / "mixed_audio.mp3"
             
-            # Área do Player Principal
+           
             if show_mixed and mixed.exists():
                 st.audio(str(mixed), format="audio/mp3")
                 
                 with open(mixed, "rb") as f:
                     st.download_button(
-                        label="DOWNLOAD MIX",
+                        label="DOWNLOAD MIX (BATERIA + BAIXO)",
                         data=f,
-                        file_name=f"{folder.name}_mix.mp3",
+                        file_name=f"{folder.name}_mix_drums_bass.mp3",
                         mime="audio/mpeg",
                         key=f"dl_mix_{folder.name}",
                         use_container_width=True
                     )
 
-            # Área Expansível para Stems
+           
             if show_stems:
-                with st.expander("Ver Faixas Individuais"):
+                with st.expander("Ver Faixas Individuais e Mix de Voz"):
+                    
+                    
+                    mixed_voice = folder / "mixed_audio_voice.mp3"
+                    if mixed_voice.exists():
+                        st.markdown("#### Mix Completo (Voz + Bateria + Baixo)")
+                        st.audio(str(mixed_voice), format="audio/mp3")
+                        with open(mixed_voice, "rb") as f:
+                            st.download_button(
+                                label="Download Mix Completo",
+                                data=f,
+                                file_name=f"{folder.name}_mix_voice_drums_bass.mp3",
+                                mime="audio/mpeg",
+                                key=f"dl_mix_voice_{folder.name}"
+                            )
+                        st.divider() 
+
+                    
                     stem_list = ["vocals.mp3", "drums.mp3", "bass.mp3", "other.mp3"]
                     for stem_name in stem_list:
                         stem_path = folder / stem_name

@@ -4,9 +4,8 @@ services:
     container_name: sound-ai
     ports:
       - "8501:8501"
-    volumes:          
-      - .:/app     
-      - /app/.venv
+    volumes:
+      - ./separated:/app/separated
     environment:
       - PYTHONUNBUFFERED=1     
       - NVIDIA_VISIBLE_DEVICES=all

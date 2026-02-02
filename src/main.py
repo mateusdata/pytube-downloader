@@ -84,6 +84,7 @@ def process_demucs(input_mp3: Path, music_name: str) -> bool:
         )
         
         if result.returncode != 0:
+            
             st.error(f"Erro no processamento: {result.stderr}")
             with st.expander("Detalhes do erro"):
                 st.code(result.stdout)

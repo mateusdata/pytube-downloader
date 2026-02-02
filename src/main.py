@@ -16,7 +16,7 @@ SRC_DIR.mkdir(exist_ok=True)
 SEPARATED_DIR.mkdir(parents=True, exist_ok=True)
 
 st.set_page_config(
-    page_title="Mateus Sono",
+    page_title="Mateus Sono IA",
     layout="wide"
 )
 
@@ -137,10 +137,12 @@ def process_demucs(input_mp3: Path, music_name: str) -> bool:
             ]
             subprocess.run(cmd_mix_voice, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    try:
-        input_mp3.unlink()
-    except:
-        pass
+
+    if input_mp3.exists():
+        try:
+            input_mp3.unlink()
+        except Exception as e:
+            st.warning(f"Não foi possível remover arquivo original: {e}")
 
     return True
 
@@ -461,24 +463,65 @@ def render_detail_view(folder_path):
                         )
 
 with st.sidebar:
-    st.header("Mateus Sono")
-    input_url = st.text_input("URL do YouTube")
-    input_name_user = st.text_input("Nome da musica")
+    st.header("Mateus Sono IA")
+    
+    if "processing" not in st.session_state:
+        st.session_state.processing = False
+    
+    if "input_url_value" not in st.session_state:
+        st.session_state.input_url_value = ""
+    
+    if "input_name_value" not in st.session_state:
+        st.session_state.input_name_value = ""
+    
+    input_url = st.text_input(
+        "URL do YouTube", 
+        value=st.session_state.input_url_value, 
+        key="url_input",
+        placeholder="Ex: youtube.com/watch?v=video-url"
+    )
+    input_name_user = st.text_input(
+        "Nome da musica", 
+        value=st.session_state.input_name_value, 
+        key="name_input",
+        placeholder="Ex: Sem Limites"
+    )
     
     st.write("") 
     
-    if st.button("INICIAR PROCESSAMENTO", type="primary", use_container_width=True):
-        if not input_url:
-            st.warning("O campo URL é obrigatório.")
-        elif not input_name_user:
-            st.warning("Defina um nome para o projeto.")
-        else:
+    if st.session_state.processing:
+        st.button("⏳ Processando...", type="primary", disabled=True, use_container_width=True)
+        
+        input_url = st.session_state.input_url_value
+        input_name_user = st.session_state.input_name_value
+        
+        if input_url and input_name_user:
             mp3_file, final_name = download_audio(input_url, input_name_user)
             if mp3_file and mp3_file.exists():
                 success = process_demucs(mp3_file, final_name)
                 if success:
-                    st.success("Processamento finalizado.")
+                    st.success("Processamento finalizado!")
+                    st.session_state.processing = False
+                    st.session_state.input_url_value = ""
+                    st.session_state.input_name_value = ""
                     st.rerun()
+                else:
+                    st.session_state.processing = False
+                    st.rerun()
+            else:
+                st.session_state.processing = False
+                st.rerun()
+    else:
+        if st.button("INICIAR PROCESSAMENTO", type="primary", use_container_width=True):
+            if not input_url:
+                st.warning("O campo URL é obrigatório.")
+            elif not input_name_user:
+                st.warning("Defina um nome para o projeto.")
+            else:
+                st.session_state.input_url_value = input_url
+                st.session_state.input_name_value = input_name_user
+                st.session_state.processing = True
+                st.rerun()
 
 if SEPARATED_DIR.exists():
     subfolders = sorted(

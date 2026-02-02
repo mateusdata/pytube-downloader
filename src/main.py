@@ -21,10 +21,10 @@ st.set_page_config(
 )
 
 def sanitize_name(name: str) -> str:
-    clean = "".join([c if c.isalnum() or c in ('-', '_') else "_" for c in name])
-    while "__" in clean:
-        clean = clean.replace("__", "_")
-    return clean.strip("_")
+    forbidden = ['/', '\\', ':', '*', '?', '"', '<', '>', '|', '\0']
+    clean = "".join([c if c not in forbidden else "_" for c in name])
+    clean = clean.strip()
+    return clean if clean else "audio_temp"
 
 def convert_to_mp3(file_path: Path) -> Path:
     if file_path.suffix == ".mp3":

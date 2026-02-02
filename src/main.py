@@ -355,7 +355,7 @@ def get_stem_player_html(stems_dict):
     return html_code
 
 def render_list_view(subfolders):
-    st.markdown("### 🎵 Minhas Músicas")
+    st.markdown("### Minhas Músicas")
     st.caption("Selecione uma música para abrir o mixer multifaixa")
     st.divider()
 
@@ -368,7 +368,7 @@ def render_list_view(subfolders):
             col_icon, col_name, col_action = st.columns([0.05, 0.7, 0.25])
             
             with col_icon:
-                st.markdown("### 🎼")
+                st.markdown("### 🎵")
             
             with col_name:
                 st.markdown(f"**{folder.name}**")

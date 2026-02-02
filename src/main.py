@@ -355,23 +355,30 @@ def get_stem_player_html(stems_dict):
     return html_code
 
 def render_list_view(subfolders):
-    st.title("Minhas Músicas")
-    st.markdown("Selecione uma música para abrir o mixer.")
+    st.markdown("### 🎵 Minhas Músicas")
+    st.caption("Selecione uma música para abrir o mixer multifaixa")
     st.divider()
 
     if not subfolders:
-        st.info("Nenhuma sessão encontrada.")
+        st.info("📂 Nenhuma música processada ainda. Use o menu lateral para começar!")
         return
 
     for folder in subfolders:
         with st.container(border=True):
-            col_name, col_action = st.columns([0.8, 0.2])
+            col_icon, col_name, col_action = st.columns([0.05, 0.7, 0.25])
+            
+            with col_icon:
+                st.markdown("### 🎼")
             
             with col_name:
-                st.subheader(folder.name)
+                st.markdown(f"**{folder.name}**")
+                
+                stem_count = len(list(folder.glob("*.mp3")))
+                if stem_count > 0:
+                    st.caption(f"🎚️ {stem_count} faixas disponíveis")
             
             with col_action:
-                if st.button("ABRIR 🎧", key=f"open_{folder.name}", use_container_width=True):
+                if st.button("▶ ABRIR", key=f"open_{folder.name}", use_container_width=True, type="primary"):
                     st.session_state.selected_music = folder.name
                     st.rerun()
 
@@ -383,34 +390,40 @@ def render_detail_view(folder_path):
             st.rerun()
         return
 
-    col_back, col_title = st.columns([0.15, 0.85])
+    col_back, col_title, col_delete = st.columns([0.1, 0.7, 0.2])
+    
     with col_back:
-        if st.button("⬅ Voltar"):
+        if st.button("⬅", help="Voltar para lista", use_container_width=True):
             st.session_state.selected_music = None
             st.rerun()
+    
     with col_title:
-        st.title(folder_path.name)
-
-    st.markdown("""
-        <style>
-        div[data-testid="stPopover"] > button {
-             border-color: #FF4B4B;
-             color: #FF4B4B;
-        }
-        div[data-testid="stPopoverBody"] button[kind="primary"] {
-             background-color: #FF4B4B !important;
-             border-color: #FF4B4B !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+        st.markdown(f"### 🎵 {folder_path.name}")
+    
+    with col_delete:
+        st.markdown("""
+            <style>
+            div[data-testid="stPopover"] > button[kind="secondary"] {
+                 background-color: #FF4B4B !important;
+                 border-color: #FF4B4B !important;
+                 color: white !important;
+            }
+            div[data-testid="stPopover"] > button {
+                 background-color: #FF4B4B !important;
+                 border-color: #FF4B4B !important;
+                 color: white !important;
+            }
+            div[data-testid="stPopoverBody"] button[kind="primary"] {
+                 background-color: #FF4B4B !important;
+                 border-color: #FF4B4B !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        
+        with st.popover("APAGAR", help="Deletar música", use_container_width=True):
+            st.button("CONFIRMAR EXCLUSÃO", type="primary", on_click=handle_delete, args=(folder_path,), use_container_width=True)
 
     st.divider()
-
-    col_del_1, col_del_2 = st.columns([0.8, 0.2])
-    with col_del_2:
-        with st.popover("🗑️ Deletar", help="Apagar todos os arquivos"):
-            st.write("Tem certeza?")
-            st.button("Sim, apagar", type="primary", on_click=handle_delete, args=(folder_path,))
 
     stems_dict = {
         "vocals": folder_path / "vocals.mp3",
@@ -420,46 +433,64 @@ def render_detail_view(folder_path):
     }
     
     if all(p.exists() for p in stems_dict.values()):
+        st.markdown("#### 🎚️ Mixer Multifaixa")
         components.html(get_stem_player_html(stems_dict), height=400)
     else:
-        st.warning("Arquivos de áudio não encontrados.")
+        st.warning("⚠️ Arquivos de áudio não encontrados.")
 
     st.divider()
-    st.markdown("### 💾 Downloads")
     
     mixed = folder_path / "mixed_audio.mp3"
     
     if mixed.exists():
+        st.markdown("#### 💿 Mix Automático")
         with st.container(border=True):
-            st.markdown("#### Mix Automático (Bateria + Baixo)")
-            st.audio(str(mixed), format="audio/mp3")
-            with open(mixed, "rb") as f:
-                st.download_button(
-                    label="Baixar Mix",
-                    data=f,
-                    file_name=f"{folder_path.name}_mix_drums_bass.mp3",
-                    mime="audio/mpeg",
-                    use_container_width=True
-                )
+            col_play, col_download = st.columns([0.7, 0.3])
+            
+            with col_play:
+                st.caption("🥁 Bateria + 🎸 Baixo")
+                st.audio(str(mixed), format="audio/mp3")
+            
+            with col_download:
+                st.write("")
+                st.write("")
+                with open(mixed, "rb") as f:
+                    st.download_button(
+                        label="⬇ Baixar Mix",
+                        data=f,
+                        file_name=f"{folder_path.name}_mix.mp3",
+                        mime="audio/mpeg",
+                        use_container_width=True
+                    )
 
-    with st.expander("Ver arquivos individuais"):
-        stem_list = ["vocals.mp3", "drums.mp3", "bass.mp3", "other.mp3"]
-        labels_pt = {"vocals.mp3": "VOZ", "drums.mp3": "BATERIA", "bass.mp3": "BAIXO", "other.mp3": "OUTROS"}
-        
-        for stem_name in stem_list:
-            stem_path = folder_path / stem_name
-            if stem_path.exists():
-                col1, col2 = st.columns([0.8, 0.2])
-                with col1:
-                    st.write(f"**{labels_pt.get(stem_name, stem_name).upper()}**")
-                with col2:
+    st.divider()
+    st.markdown("#### 📦 Faixas Individuais")
+    
+    stem_list = ["vocals.mp3", "drums.mp3", "bass.mp3", "other.mp3"]
+    labels_pt = {
+        "vocals.mp3": ("🎤", "VOZ"), 
+        "drums.mp3": ("🥁", "BATERIA"), 
+        "bass.mp3": ("🎸", "BAIXO"), 
+        "other.mp3": ("🎹", "OUTROS")
+    }
+    
+    cols = st.columns(2)
+    for idx, stem_name in enumerate(stem_list):
+        stem_path = folder_path / stem_name
+        if stem_path.exists():
+            with cols[idx % 2]:
+                with st.container(border=True):
+                    icon, label = labels_pt.get(stem_name, ("🎵", stem_name))
+                    st.markdown(f"**{icon} {label}**")
+                    
                     with open(stem_path, "rb") as f:
                         st.download_button(
-                            label="⬇",
+                            label="⬇ Download",
                             data=f,
                             file_name=f"{folder_path.name}_{stem_name}",
                             mime="audio/mpeg",
-                            key=f"dl_{stem_name}_{folder_path.name}"
+                            key=f"dl_{stem_name}_{folder_path.name}",
+                            use_container_width=True
                         )
 
 with st.sidebar:

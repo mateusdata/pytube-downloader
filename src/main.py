@@ -84,7 +84,9 @@ def process_demucs(input_mp3: Path, music_name: str) -> bool:
         )
         
         if result.returncode != 0:
-            st.error("Erro no processamento interno.")
+            st.error(f"Erro no processamento: {result.stderr}")
+            with st.expander("Detalhes do erro"):
+                st.code(result.stdout)
             return False
 
     target_dir = SEPARATED_DIR / input_mp3.stem
@@ -145,20 +147,18 @@ if "selected_music" not in st.session_state:
     st.session_state.selected_music = None
 
 def handle_delete(folder_path):
+    import time
     try:
         if folder_path.exists():
-            for item in folder_path.rglob('*'):
-                if item.is_file():
-                    try:
-                        item.chmod(0o777)
-                        item.unlink()
-                    except:
-                        pass
-            shutil.rmtree(folder_path, ignore_errors=True)
+            shutil.rmtree(folder_path)
+        
         st.session_state.selected_music = None
-        st.session_state.delete_success = True
+        time.sleep(0.1)
+        st.toast("Música apagada com sucesso!", icon="✅")
+        time.sleep(0.5)
     except Exception as e:
-        st.session_state.delete_error = str(e)
+        st.toast(f"Erro ao apagar: {e}", icon="❌")
+        time.sleep(1)
 
 def get_stem_player_html(stems_dict):
     audio_data = {}
@@ -373,15 +373,6 @@ def render_list_view(subfolders):
                     st.rerun()
 
 def render_detail_view(folder_path):
-    if st.session_state.get("delete_success"):
-        st.success("Música apagada com sucesso!")
-        st.session_state.delete_success = False
-        st.rerun()
-    
-    if st.session_state.get("delete_error"):
-        st.error(f"Erro ao apagar: {st.session_state.delete_error}")
-        st.session_state.delete_error = None
-    
     if not folder_path.exists():
         st.error("Pasta não encontrada.")
         if st.button("Voltar"):

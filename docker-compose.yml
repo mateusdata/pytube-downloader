@@ -5,7 +5,7 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      - ./separated:/app/separated
+      - separated_data:/app/separated
     environment:
       - PYTHONUNBUFFERED=1     
       - NVIDIA_VISIBLE_DEVICES=all
@@ -17,3 +17,6 @@ services:
               count: all
               capabilities: [gpu]
     restart: unless-stopped
+
+volumes:
+  separated_data:
